@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.6.3)
 
-project(KinesisVideoWebRTCClientSamples LANGUAGES C)
+project(KinesisVideoWebRTCClientSamples)
+
+set(CMAKE_CXX_STANDARD 11)  # Adjust the version according to your needs
+
 
 #set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and build in this directory.")
 
@@ -57,50 +60,63 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/aacSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 
-add_executable(
-  kvsWebrtcClientMaster
-  Common.c
-  kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun)
+
+#add_executable(
+#  kvsWebrtcClientMaster
+#  Common.c
+#  kvsWebRTCClientMaster.c)
+#target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun)
+
+add_library(c_wrapper c_wrapper.cpp)
 
 add_executable(
-  kvsWebrtcClientViewer
-  Common.c
-  kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun)
+        kvsWebrtcClientMasterCW
+        Common.c
+        kvsWebRTCClientMasterCloudwatch.c)
+target_link_libraries(kvsWebrtcClientMasterCW kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun
+        aws-cpp-sdk-core
+        aws-cpp-sdk-monitoring
+        aws-cpp-sdk-logs
+        c_wrapper)
 
-add_executable(
-        discoverNatBehavior
-        discoverNatBehavior.c)
-target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp kvsstun)
+#add_executable(
+#  kvsWebrtcClientViewer
+#  Common.c
+#  kvsWebRTCClientViewer.c)
+#target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun)
+#
+#add_executable(
+#        discoverNatBehavior
+#        discoverNatBehavior.c)
+#target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp kvsstun)
 
-if(GST_FOUND)
-  add_executable(
-    kvsWebrtcClientMasterGstSample
-    Common.c
-    GstAudioVideoReceiver.c
-    kvsWebRTCClientMasterGstSample.c
-  )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvsstun)
+#if(GST_FOUND)
+#  add_executable(
+#    kvsWebrtcClientMasterGstSample
+#    Common.c
+#    GstAudioVideoReceiver.c
+#    kvsWebRTCClientMasterGstSample.c
+#  )
+#  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvsstun)
+#
+#  install(TARGETS kvsWebrtcClientMasterGstSample
+#    RUNTIME DESTINATION bin
+#  )
+#
+#  add_executable(
+#    kvsWebrtcClientViewerGstSample
+#    Common.c
+#    GstAudioVideoReceiver.c
+#    kvsWebRTCClientViewerGstSample.c
+#  )
+#  target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
+#
+#  install(TARGETS kvsWebrtcClientViewerGstSample
+#    RUNTIME DESTINATION bin
+#  )
+#endif()
 
-  install(TARGETS kvsWebrtcClientMasterGstSample
-    RUNTIME DESTINATION bin
-  )
-
-  add_executable(
-    kvsWebrtcClientViewerGstSample
-    Common.c
-    GstAudioVideoReceiver.c
-    kvsWebRTCClientViewerGstSample.c
-  )
-  target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
-
-  install(TARGETS kvsWebrtcClientViewerGstSample
-    RUNTIME DESTINATION bin
-  )
-endif()
-
-install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
-  RUNTIME DESTINATION bin
-)
+#install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
+#  RUNTIME DESTINATION bin
+#)
 
