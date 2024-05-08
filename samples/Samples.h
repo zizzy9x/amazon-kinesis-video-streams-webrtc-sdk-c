@@ -12,6 +12,9 @@ extern "C" {
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
+#define STRINGIZE(x)           #x
+#define INCLUDE_CONFIG(header) STRINGIZE(header)
+
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
@@ -82,6 +85,10 @@ extern "C" {
 #define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
+
+#define ENABLE_TURN_USAGE_ENV_VAR  (PCHAR) "ENABLE_TURN_USAGE"
+#define ENABLE_TRICKLE_ICE_ENV_VAR (PCHAR) "ENABLE_TRICKLE_ICE"
+#define ENABLE_DC_TTFF_SENDING_VAR (PCHAR) "ENABLE_DC_TTFF_SENDING"
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -193,6 +200,36 @@ typedef struct {
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
 
+typedef struct {
+    UINT64 prevNumberOfPacketsSent;
+    UINT64 prevNumberOfPacketsReceived;
+    UINT64 prevNumberOfBytesSent;
+    UINT64 prevNumberOfBytesReceived;
+    UINT64 prevFramesDiscardedOnSend;
+    UINT64 prevTs;
+    UINT64 prevVideoFramesGenerated;
+    UINT64 prevFramesSent;
+    UINT64 prevNackCount;
+    UINT64 prevRetxBytesSent;
+    UINT64 videoFramesGenerated;
+    UINT64 videoBytesGenerated;
+    DOUBLE framesPercentageDiscarded;
+    DOUBLE nacksPerSecond;
+    DOUBLE averageFramesSentPerSecond;
+    DOUBLE retxBytesPercentage;
+} OutgoingRTPMetricsContext, *POutgoingRTPMetricsContext;
+
+typedef struct {
+    UINT64 prevPacketsReceived;
+    UINT64 prevTs;
+    UINT64 prevBytesReceived;
+    UINT64 prevFramesDropped;
+    DOUBLE packetReceiveRate;
+    DOUBLE incomingBitRate;
+    DOUBLE framesDroppedPerSecond;
+} IncomingRTPMetricsContext;
+typedef IncomingRTPMetricsContext* PIncomingRTPMetricsContext;
+
 struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
     volatile ATOMIC_BOOL candidateGatheringDone;
@@ -222,6 +259,10 @@ struct __SampleStreamingSession {
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
+    OutgoingRTPMetricsContext canaryOutgoingRTPMetricsContext;
+    IncomingRTPMetricsContext canaryIncomingRTPMetricsContext;
+    RtcStats canaryMetrics;
+    BOOL recorded;
 };
 
 // TODO this should all be in a higher webrtccontext layer above PeerConnection
@@ -233,6 +274,10 @@ typedef struct {
 
 } AsyncGetIceStruct;
 
+typedef struct {
+    UINT64 customData;
+} MetricsHookFunc, *PMetricsHookFunc;
+
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 PVOID receiveGstreamerAudioVideo(PVOID);
@@ -240,7 +285,6 @@ PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);
 PVOID sampleReceiveAudioVideoFrame(PVOID);
-PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
 STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);
@@ -277,6 +321,9 @@ STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQ
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
+
+STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession);
+STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession);
 
 #ifdef __cplusplus
 }
