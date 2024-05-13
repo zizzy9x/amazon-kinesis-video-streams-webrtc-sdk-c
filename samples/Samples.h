@@ -320,6 +320,8 @@ UINT32 setLogLevel();
 STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession);
 STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession);
 STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession);
+VOID onIceCandidateHandler(UINT64, PCHAR);
+PVOID mediaSenderRoutine(PVOID);
 
 #ifdef __cplusplus
 }
