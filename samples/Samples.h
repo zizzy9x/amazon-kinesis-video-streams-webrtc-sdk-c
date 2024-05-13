@@ -13,6 +13,9 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include SAMPLE_CONFIG_HEADER
 
+#define KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE 64 * 1024
+#define KVS_MINIMUM_THREAD_STACK_SIZE              16 * 1024
+
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
@@ -201,7 +204,9 @@ typedef struct {
     DOUBLE nacksPerSecond;
     DOUBLE averageFramesSentPerSecond;
     DOUBLE retxBytesPercentage;
-} OutgoingRTPMetricsContext, *POutgoingRTPMetricsContext;
+    MUTEX outgoingRtpStatsLock;
+    BOOL recorded;
+} OutgoingRTPStatsCtx, *POutgoingRTPStatsCtx;
 
 typedef struct {
     UINT64 prevPacketsReceived;
@@ -211,8 +216,15 @@ typedef struct {
     DOUBLE packetReceiveRate;
     DOUBLE incomingBitRate;
     DOUBLE framesDroppedPerSecond;
-} IncomingRTPMetricsContext;
-typedef IncomingRTPMetricsContext* PIncomingRTPMetricsContext;
+    MUTEX incomingRtpStatsLock;
+} IncomingRTPStatsCtx, *PIncomingRTPStatsCtx;
+
+typedef struct {
+    OutgoingRTPStatsCtx outgoingRTPStatsCtx;
+    IncomingRTPStatsCtx incomingRTPStatsCtx;
+    RtcStats kvsRtcStats;
+    MUTEX statsUpdateLock;
+} StatsCtx, *PStatsCtx;
 
 struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
@@ -243,10 +255,7 @@ struct __SampleStreamingSession {
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
-    OutgoingRTPMetricsContext canaryOutgoingRTPMetricsContext;
-    IncomingRTPMetricsContext canaryIncomingRTPMetricsContext;
-    RtcStats canaryMetrics;
-    BOOL recorded;
+    PStatsCtx pStatsCtx;
 };
 
 // TODO this should all be in a higher webrtccontext layer above PeerConnection
@@ -292,6 +301,8 @@ VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);
+VOID onDataChannelMessage(UINT64, PRtcDataChannel, BOOL, PBYTE, UINT32);
+
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
