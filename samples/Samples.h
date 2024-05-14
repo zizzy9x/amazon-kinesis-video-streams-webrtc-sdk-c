@@ -40,7 +40,6 @@ extern "C" {
 #define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
-#define SAMPLE_PRE_GENERATE_CERT        TRUE
 #define SAMPLE_PRE_GENERATE_CERT_PERIOD (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 #define SAMPLE_SESSION_CLEANUP_WAIT_PERIOD (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -163,6 +162,7 @@ typedef struct {
     MUTEX signalingSendMessageLock;
 
     UINT32 pregenerateCertTimerId;
+    UINT32 terminateId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
 
     PCHAR rtspUri;
@@ -322,6 +322,7 @@ STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
 STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession);
 VOID onIceCandidateHandler(UINT64, PCHAR);
 PVOID mediaSenderRoutine(PVOID);
+STATUS setupMetricsCtx(PSampleStreamingSession);
 
 #ifdef __cplusplus
 }
