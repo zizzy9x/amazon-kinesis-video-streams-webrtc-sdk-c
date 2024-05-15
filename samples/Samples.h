@@ -90,6 +90,9 @@ extern "C" {
 #define ENABLE_TRICKLE_ICE_ENV_VAR (PCHAR) "ENABLE_TRICKLE_ICE"
 #define ENABLE_DC_TTFF_SENDING_VAR (PCHAR) "ENABLE_DC_TTFF_SENDING"
 
+#define STATUS_WEBRTC_SAMPLE_BASE     0x74000000
+#define STATUS_WAITING_ON_FIRST_FRAME STATUS_WEBRTC_SAMPLE_BASE + 0x00000001
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -138,7 +141,6 @@ typedef struct {
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
-    SignalingClientMetrics signalingClientMetrics;
 
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
@@ -168,6 +170,7 @@ typedef struct {
     PCHAR rtspUri;
     UINT32 logLevel;
     BOOL enableIceStats;
+    SignalingClientMetrics signalingClientMetrics;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -222,6 +225,8 @@ typedef struct {
 typedef struct {
     OutgoingRTPStatsCtx outgoingRTPStatsCtx;
     IncomingRTPStatsCtx incomingRTPStatsCtx;
+    PeerConnectionMetrics peerConnectionMetrics;
+    KvsIceAgentMetrics iceMetrics;
     RtcStats kvsRtcStats;
     MUTEX statsUpdateLock;
 } StatsCtx, *PStatsCtx;
@@ -250,8 +255,6 @@ struct __SampleStreamingSession {
     StreamSessionShutdownCallback shutdownCallback;
     UINT64 shutdownCallbackCustomData;
     UINT64 offerReceiveTime;
-    PeerConnectionMetrics peerConnectionMetrics;
-    KvsIceAgentMetrics iceMetrics;
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
@@ -266,10 +269,6 @@ typedef struct {
     PUINT32 pUriCount;
 
 } AsyncGetIceStruct;
-
-typedef struct {
-    UINT64 customData;
-} MetricsHookFunc, *PMetricsHookFunc;
 
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
@@ -323,7 +322,7 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession);
 VOID onIceCandidateHandler(UINT64, PCHAR);
 PVOID mediaSenderRoutine(PVOID);
 STATUS setupMetricsCtx(PSampleStreamingSession);
-
+STATUS getSdkTimeProfile(PSampleStreamingSession);
 #ifdef __cplusplus
 }
 #endif
